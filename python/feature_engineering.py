@@ -47,3 +47,16 @@ def add_rolling_load(df: pd.DataFrame, windows=(7, 14), ewma_span=7) -> pd.DataF
     )
 
     return df
+
+def add_time_since_last_session(df: pd.DataFrame) -> pd.DataFrame:
+    df = df.copy()
+    df = df.sort_values(["exercise", "date"])
+
+    df["days_since_last_session"] = (
+        df
+        .groupby("exercise")["date"]
+        .diff()
+        .map(lambda x: x.days if pd.notna(x) else np.nan)
+    )
+
+    return df

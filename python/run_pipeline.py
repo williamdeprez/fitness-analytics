@@ -4,7 +4,8 @@ from pathlib import Path
 from feature_engineering import (
     aggregate_lift_day,
     add_stress_metrics,
-    add_rolling_load
+    add_rolling_load,
+    add_time_since_last_session
 )
 
 PROCESSED_DIR = Path(__file__).resolve().parents[1] / "data" / "processed"
@@ -28,6 +29,8 @@ def main():
     agg = add_stress_metrics(agg)
 
     agg = add_rolling_load(agg)
+    
+    agg = add_time_since_last_session(agg)
 
     write_output(agg, "training_lift_day_aggregates.csv")
 
