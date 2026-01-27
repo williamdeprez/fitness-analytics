@@ -1,7 +1,11 @@
 from load_data import load_training_data
 import pandas as pd
 from pathlib import Path
-from feature_engineering import aggregate_lift_day
+from feature_engineering import (
+    aggregate_lift_day,
+    add_stress_metrics,
+    add_rolling_load
+)
 
 PROCESSED_DIR = Path(__file__).resolve().parents[1] / "data" / "processed"
 
@@ -18,7 +22,14 @@ def main():
     df = load_training_data()
 
     write_output(df, "training_sets_normalized.csv")
-    write_output(aggregate_lift_day(df), "training_lift_day_aggregates.csv")
+
+    agg = aggregate_lift_day(df)
+
+    agg = add_stress_metrics(agg)
+
+    agg = add_rolling_load(agg)
+
+    write_output(agg, "training_lift_day_aggregates.csv")
 
 
 if __name__ == "__main__":
