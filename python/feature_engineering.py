@@ -60,3 +60,27 @@ def add_time_since_last_session(df: pd.DataFrame) -> pd.DataFrame:
     )
 
     return df
+
+def aggregate_global_daily_fatigue(df: pd.DataFrame) -> pd.DataFrame:
+    rolling_cols = [c for c in df.columns if c.startswith("rolling_stress_")]
+
+    agg_dict = {
+        "stress": "sum",
+        "ewma_stress": "sum",
+        "exercise": "nunique",
+    }
+
+    for col in rolling_cols:
+        agg_dict[col] = "sum"
+        
+    daily = (
+        df
+        .groupby("date", as_index=False)
+        .agg(agg_dict)
+        .rename(columns={
+            "stress": "total_stress",
+            "exercise": "num_lifts",
+        })
+    )
+
+    return daily
