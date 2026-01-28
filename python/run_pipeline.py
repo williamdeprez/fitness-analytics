@@ -12,6 +12,14 @@ from feature_engineering import (
 PROCESSED_DIR = Path(__file__).resolve().parents[1] / "data" / "processed"
 
 def write_output(df: pd.DataFrame, filename: str) -> None:
+    """
+    Helper function to write output files and print a notification to console.
+    
+    :param df: The DataFrame we wish to write to a file
+    :type df: pd.DataFrame
+    :param filename: Filename for output ex:"training_sets_normalized.csv". Writes to path "data/processed/---"
+    :type filename: str
+    """
     out_path = PROCESSED_DIR / filename
     df.to_csv(out_path, index=False)
 
@@ -33,6 +41,9 @@ def main():
 
     daily = aggregate_global_daily_fatigue(lift_day)
     write_output(daily, "training_global_daily_fatigue.csv")
+
+    print(lift_day.describe())
+    print(daily.describe())
 
 if __name__ == "__main__":
     main()

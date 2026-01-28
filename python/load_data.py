@@ -4,6 +4,14 @@ from pathlib import Path
 DATA_DIR = Path(__file__).resolve().parents[1] / "data" / "raw"
 
 def load_training_data(filename: str = "strong_workouts.csv") -> pd.DataFrame:
+    """
+    Ingests the raw DataFrame exported from Strong exercise tracking app, and sorts it into appropriate columns.
+    
+    :param filename: The filename of the csv to ingest, under the path "data/raw/---.csv"
+    :type filename: str
+    :return: Returns a DataFrame containing Date, Workout Name, Exercise Name, Sets, Weight, Reps, and RPE
+    :rtype: DataFrame
+    """
     path = DATA_DIR / filename
     if not path.exists():
         raise FileNotFoundError(f"File not found: {path}")
