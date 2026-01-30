@@ -6,7 +6,8 @@ from feature_engineering import (
     add_stress_metrics,
     add_rolling_load,
     add_time_since_last_session,
-    aggregate_global_daily_fatigue
+    aggregate_global_daily_fatigue,
+    add_fatigue_phase
 )
 
 PROCESSED_DIR = Path(__file__).resolve().parents[1] / "data" / "processed"
@@ -37,6 +38,7 @@ def main():
     lift_day = add_stress_metrics(lift_day)
     lift_day = add_rolling_load(lift_day)
     lift_day = add_time_since_last_session(lift_day)
+    lift_day = add_fatigue_phase(lift_day)
     write_output(lift_day, "training_lift_day_aggregates.csv")
 
     daily = aggregate_global_daily_fatigue(lift_day)

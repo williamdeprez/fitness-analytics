@@ -95,6 +95,47 @@ def add_time_since_last_session(df: pd.DataFrame) -> pd.DataFrame:
 
     return df
 
+def add_fatigue_phase(df: pd.DataFrame, ewma_span: int = 14, slope_smooth_span: int = 7, tol: float = 5) -> pd.DataFrame:
+    """
+    Classifies fatigue phase based on EWMA slope of EWMA stress.
+    
+    :param df: The DataFrame produced from add_rolling_load()
+    :type df: pd.DataFrame
+    :param ewma_span: Span for EWMA smoothing of stress levels
+    :param slope_smooth_span: Span for EWMA smoothing of slope
+    :param tol: Tolerance for classifying stable phase
+    :return: Returns the original DataFrame with an additional column classifying fatigue phase.
+    :rtype: DataFrame
+    """
+    df = df.copy()
+    df = df.sort_values(["exercise", "date"])
+
+    def classify_fatigue_phase(slope):
+        if slope > tol:
+            return "accumulating"
+        elif slope < -tol:
+            return "recovering"
+        else:
+            return "stable"
+
+    df["ewma_smooth"] = (
+        df
+        .groupby("exercise")["ewma_stress"]
+        .transform(lambda x: x.ewm(span=ewma_span, adjust=False).mean())
+    )
+
+    df["ewma_slope"] = df.groupby("exercise")["ewma_smooth"].diff()
+
+    df["ewma_slope_smooth"] = (
+        df
+        .groupby("exercise")["ewma_slope"]
+        .transform(lambda x: x.ewm(span=slope_smooth_span, adjust=False).mean())
+    )
+
+    df["fatigue_phase"] = df["ewma_slope_smooth"].apply(classify_fatigue_phase)
+
+    return df
+
 def aggregate_global_daily_fatigue(df: pd.DataFrame) -> pd.DataFrame:
     """
     Aggregates lift-level stress into systemic, whole-body daily fatigue.
