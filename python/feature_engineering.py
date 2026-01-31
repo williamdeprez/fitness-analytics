@@ -136,6 +136,35 @@ def add_fatigue_phase(df: pd.DataFrame, ewma_span: int = 14, slope_smooth_span: 
 
     return df
 
+def aggregate_fatigue_phases(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Aggregate consecutive fatigue phases into duration-based summaries.
+
+    :param df: DataFrame with `fatigue_phase`, `ewma_stress`, and `stress`.
+    :return: DataFrame summarizing fatigue phases.
+    """
+    df = df.copy()
+    df = df.sort_values(["exercise", "date"])
+
+    # Identify phase transitions
+    df["phase_group"] = (
+        df.groupby("exercise")["fatigue_phase"]
+          .transform(lambda x: (x != x.shift()).cumsum())
+    )
+
+    # Aggregate phase metrics
+    phase_summary = (
+        df.groupby(["exercise", "phase_group", "fatigue_phase"], as_index=False)
+          .agg(
+              start_date=("date", "min"),
+              end_date=("date", "max"),
+              duration_days=("date", lambda x: (x.max() - x.min()).days + 1),
+              mean_ewma=("ewma_stress", "mean"),
+              mean_stress=("stress", "mean"),
+          )
+    )
+    return phase_summary
+
 def aggregate_global_daily_fatigue(df: pd.DataFrame) -> pd.DataFrame:
     """
     Aggregates lift-level stress into systemic, whole-body daily fatigue.
