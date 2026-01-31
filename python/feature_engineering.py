@@ -158,9 +158,10 @@ def aggregate_fatigue_phases(df: pd.DataFrame) -> pd.DataFrame:
           .agg(
               start_date=("date", "min"),
               end_date=("date", "max"),
-              duration_days=("date", lambda x: (x.max() - x.min()).days + 1),
+              calendar_days=("date", lambda x: (x.max() - x.min()).days + 1),
               mean_ewma=("ewma_stress", "mean"),
               mean_stress=("stress", "mean"),
+              sessions = ("date", "count")
           )
     )
     return phase_summary
@@ -178,7 +179,7 @@ def aggregate_global_daily_fatigue(df: pd.DataFrame) -> pd.DataFrame:
 
     agg_dict = {
         "stress": "sum",
-        "ewma_stress": "sum",
+        "ewma_stress": "mean",
         "exercise": "nunique",
     }
 

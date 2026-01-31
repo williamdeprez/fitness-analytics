@@ -10,6 +10,7 @@ from feature_engineering import (
     add_fatigue_phase,
     aggregate_fatigue_phases
 )
+from models.regression import train_regression_model
 
 PROCESSED_DIR = Path(__file__).resolve().parents[1] / "data" / "processed"
 
@@ -47,6 +48,24 @@ def main():
 
     phase_summary = aggregate_fatigue_phases(lift_day)
     write_output(phase_summary, "fatigue_phase_summary.csv")
+
+
+    bench_data = lift_day[
+        lift_day["exercise"].str.contains("bench press", na=False)
+    ].copy()
+
+    model = train_regression_model(
+        data=bench_data,
+        target="max_weight",
+        features=[
+            "ewma_stress",
+            "fatigue_phase",
+            "days_since_last_session"
+        ],
+        phase_baseline="accumulating"
+    )
+
+
 
 if __name__ == "__main__":
     main()
