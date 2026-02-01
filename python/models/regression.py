@@ -65,6 +65,8 @@ def train_regression_model(data: pd.DataFrame, target: str, features: list, phas
         "coefficient": model.coef_
     }).sort_values("coefficient", key=abs, ascending=False)
 
+    coef_table.to_csv("data/processed/regression_model_coefficients.csv", index=False)
+
     print("\nModel coefficients:")
     print(coef_table)
 

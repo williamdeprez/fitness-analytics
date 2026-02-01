@@ -8,7 +8,8 @@ from feature_engineering import (
     add_time_since_last_session,
     aggregate_global_daily_fatigue,
     add_fatigue_phase,
-    aggregate_fatigue_phases
+    aggregate_fatigue_phases,
+    add_phase_dynamics
 )
 from models.regression import train_regression_model
 
@@ -41,6 +42,7 @@ def main():
     lift_day = add_rolling_load(lift_day)
     lift_day = add_time_since_last_session(lift_day)
     lift_day = add_fatigue_phase(lift_day)
+    lift_day = add_phase_dynamics(lift_day)
     write_output(lift_day, "training_lift_day_aggregates.csv")
 
     daily = aggregate_global_daily_fatigue(lift_day)
@@ -59,6 +61,8 @@ def main():
         target="max_weight",
         features=[
             "ewma_stress",
+            "fatigue_phase",
+            "sessions_in_phase",
             "fatigue_phase",
             "days_since_last_session"
         ],

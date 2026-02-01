@@ -1,6 +1,6 @@
 # 📘 Data Dictionary — Fitness & Recovery Analytics
 
-This document describes the schema and semantics of all engineered features produced by the data pipeline.  
+This document describes the schema and semantics of all engineered features produced by the data pipeline. (All present within `training_lift_day_aggregates.csv`)
 Each row in the primary dataset represents **one exercise performed on one calendar day**.
 
 ---

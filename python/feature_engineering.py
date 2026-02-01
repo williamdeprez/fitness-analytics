@@ -134,6 +134,33 @@ def add_fatigue_phase(df: pd.DataFrame, ewma_span: int = 14, slope_smooth_span: 
 
     df["fatigue_phase"] = df["ewma_slope_smooth"].apply(classify_fatigue_phase)
 
+    # Identify phase transitions
+    df["phase_group"] = (
+        df.groupby("exercise")["fatigue_phase"]
+          .transform(lambda x: (x != x.shift()).cumsum())
+    )
+
+    return df
+
+def add_phase_dynamics(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Adds phase depth and slope magnitude features.
+    :param df: The DataFrame produced from add_rolling_load()
+    :type df: pd.DataFrame
+    :return: Returns the original dataframe with additional columns calculating phase dynamics.
+    :rtype: DataFrame
+    """
+    df = df.copy()
+    df = df.sort_values(["exercise", "date"])
+    
+    df["sessions_in_phase"] = (
+        df.groupby(["exercise", "phase_group"])
+        .cumcount() + 1
+    )
+
+    # Rate of change w/o direction
+    df["ewma_slope_magnitude"] = df["ewma_slope_smooth"].abs()
+
     return df
 
 def aggregate_fatigue_phases(df: pd.DataFrame) -> pd.DataFrame:
@@ -145,12 +172,6 @@ def aggregate_fatigue_phases(df: pd.DataFrame) -> pd.DataFrame:
     """
     df = df.copy()
     df = df.sort_values(["exercise", "date"])
-
-    # Identify phase transitions
-    df["phase_group"] = (
-        df.groupby("exercise")["fatigue_phase"]
-          .transform(lambda x: (x != x.shift()).cumsum())
-    )
 
     # Aggregate phase metrics
     phase_summary = (
