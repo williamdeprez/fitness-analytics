@@ -11,7 +11,7 @@ from feature_engineering import (
     aggregate_fatigue_phases,
     add_phase_dynamics
 )
-from models.regression import train_regression_model
+from models.regression import train_regression_model, train_ridge_regression
 
 PROCESSED_DIR = Path(__file__).resolve().parents[1] / "data" / "processed"
 
@@ -56,7 +56,20 @@ def main():
         lift_day["exercise"].str.contains("bench press", na=False)
     ].copy()
 
-    model = train_regression_model(
+    # model = train_regression_model(
+        # data=bench_data,
+        # target="max_weight",
+        # features=[
+            # "ewma_stress",
+            # "fatigue_phase",
+            # "sessions_in_phase",
+            # "fatigue_phase",
+            # "days_since_last_session"
+        # ],
+        # phase_baseline="accumulating"
+    # )
+
+    ridge_model = train_ridge_regression(
         data=bench_data,
         target="max_weight",
         features=[
