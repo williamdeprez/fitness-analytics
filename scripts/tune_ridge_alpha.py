@@ -1,5 +1,7 @@
 import pandas as pd
+import sys
 from pathlib import Path
+sys.path.append(str(Path(__file__).resolve().parents[1]))
 from python.models.regression import tune_ridge_alpha
 
 DATA_DIR = Path(__file__).resolve().parents[1] / "data" / "processed"

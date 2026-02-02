@@ -1,8 +1,6 @@
 import pandas as pd
 
-# -------------------------
 # Load data
-# -------------------------
 
 lift_day = pd.read_csv(
     "data/processed/training_lift_day_aggregates.csv",
@@ -14,18 +12,14 @@ phase_summary = pd.read_csv(
     parse_dates=["start_date", "end_date"]
 )
 
-# -------------------------
 # Focus on ONE lift
-# -------------------------
 
 PATTERN = "bench press"
 
 ld = lift_day[lift_day["exercise"].str.contains(PATTERN, na=False)].copy()
 ps = phase_summary[phase_summary["exercise"].str.contains(PATTERN, na=False)].copy()
 
-# -------------------------
 # Count actual lift sessions per phase
-# -------------------------
 
 computed_lift_days = []
 
@@ -39,9 +33,7 @@ for row in ps.itertuples():
 
 ps["computed_lift_days"] = computed_lift_days
 
-# -------------------------
 # Print comparison table
-# -------------------------
 
 print(
     ps[
@@ -55,9 +47,7 @@ print(
     ]
 )
 
-# -------------------------
 # Verify full coverage (no gaps, no overlaps)
-# -------------------------
 
 covered_idx = set()
 
