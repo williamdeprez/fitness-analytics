@@ -24,6 +24,39 @@ def encode_fatigue_phase(X: pd.DataFrame, baseline: str) -> pd.DataFrame:
         drop_first=True
     )
 
+def tune_ridge_alpha(data: pd.DataFrame, target: str, features: list, alphas: list, phase_baseline: str = "stable") -> pd.DataFrame:
+    df = data[features + [target]].dropna()
+
+    X = df[features]
+    y = df[target]
+
+    X = encode_fatigue_phase(X, baseline=phase_baseline)
+
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42
+    )
+
+    results = []
+
+    for alpha in alphas:
+        model = Ridge(alpha=alpha)
+        model.fit(X_train, y_train)
+
+        y_pred = model.predict(X_test)
+
+        results.append({
+            "alpha": alpha,
+            "mse": mean_squared_error(y_test, y_pred),
+            "r2": r2_score(y_test, y_pred)
+        })
+
+    results_df = pd.DataFrame(results).sort_values("mse")
+
+    print("\nRidge Alpha Tuning Results:")
+    print(results_df)
+
+    return results_df
+
 def print_model_information(model, X_train: pd.DataFrame, X_test: pd.DataFrame, y_test: pd.Series, model_name: str = "Model") -> None:
     """
     Prints evaluation metrics and coefficients for a trained regression model.
