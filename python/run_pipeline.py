@@ -14,6 +14,7 @@ from feature_engineering import (
 from models.regression import train_regression_model, train_ridge_regression
 
 PROCESSED_DIR = Path(__file__).resolve().parents[1] / "data" / "processed"
+RIDGE_ALPHA_V1 = 1e4 # Pre-determined best alpha from prior tuning using tune_ridge_alpha
 
 def write_output(df: pd.DataFrame, filename: str) -> None:
     """
@@ -79,9 +80,9 @@ def main():
             "fatigue_phase",
             "days_since_last_session"
         ],
+        alpha=RIDGE_ALPHA_V1,
         phase_baseline="accumulating"
     )
-
 
 
 if __name__ == "__main__":
