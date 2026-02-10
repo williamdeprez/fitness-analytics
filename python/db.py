@@ -19,3 +19,8 @@ def read_sql(query: str) -> pd.DataFrame:
     df = pd.read_sql(query, conn)
     conn.close()
     return df
+
+if __name__ == "__main__":
+    query = "SELECT * FROM analytics.training_lift_day LIMIT 5;"
+    df = read_sql(query)
+    print(df.head())
