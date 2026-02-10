@@ -9,7 +9,9 @@ from feature_engineering import (
     aggregate_global_daily_fatigue,
     add_fatigue_phase,
     aggregate_fatigue_phases,
-    add_phase_dynamics
+    add_phase_dynamics,
+    add_phase_transition_flags,
+    add_stress_deviation
 )
 from models.regression import train_regression_model, train_ridge_regression
 
@@ -44,6 +46,8 @@ def main():
     lift_day = add_time_since_last_session(lift_day)
     lift_day = add_fatigue_phase(lift_day)
     lift_day = add_phase_dynamics(lift_day)
+    lift_day = add_phase_transition_flags(lift_day)
+    lift_day = add_stress_deviation(lift_day)
     write_output(lift_day, "training_lift_day_aggregates.csv")
 
     daily = aggregate_global_daily_fatigue(lift_day)

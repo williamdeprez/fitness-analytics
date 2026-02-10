@@ -218,3 +218,31 @@ def aggregate_global_daily_fatigue(df: pd.DataFrame) -> pd.DataFrame:
     )
 
     return daily
+
+def add_phase_transition_flags(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Adds a column for deviation of current stress from mean stress.
+    
+    :param df: The DataFrame produced from add_phase_dynamics()
+    :type df: pd.DataFrame
+    :return: Returns the original DataFrame with an additional column containing phase transition locations.
+    :rtype: DataFrame
+    """
+    df = df.copy()
+    df = df.sort_values(["exercise", "date"])
+    
+    df["phase_transition"] = df["fatigue_phase"] != df["fatigue_phase"].shift()
+    return df
+
+def add_stress_deviation(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Adds a column for deviation of current stress from mean stress.
+    
+    :param df: The DataFrame produced from add_phase_transition_flags()
+    :type df: pd.DataFrame
+    :return: Returns the original DataFrame with an additional column calculating the deviation of current stress from mean stress.
+    :rtype: DataFrame
+    """
+    df = df.copy()
+    df["stress_deviation"] = df["stress"] - df["ewma_smooth"]
+    return df
