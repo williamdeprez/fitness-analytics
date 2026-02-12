@@ -2,3 +2,7 @@ data/processed/
 */__pycache__/
 *.pyc
 .venv/
+.continue/
+.vscode/
+assets/figures/plots/
+.env 
