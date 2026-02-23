@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 from pathlib import Path
+from typing import Optional
 
 def forecast_ewma(last_ewma: float, future_stress: np.ndarray, alpha: float) -> np.ndarray:
     ewma_forecast = []
@@ -54,6 +55,14 @@ def forecast_fatigue_scenario(df: pd.DataFrame, stress_col: str = "stress", ewma
         "scenario": mode
     })
 
+def days_until_recovery(forecast_df: pd.DataFrame, threshold: float) -> Optional[int]:
+    below = forecast_df["forecasted_ewma"] < threshold
+
+    if not below.any():
+        return None
+
+    return forecast_df.loc[below, "day_ahead"].iloc[0]
+
 if __name__ == "__main__":
     """
     Simple demo run for deterministic fatigue forecasting.
@@ -70,6 +79,12 @@ if __name__ == "__main__":
         horizon=21,
         mode="deload"
     )
+
+    threshold = bench["ewma_stress"].quantile(0.25)
+
+    days = days_until_recovery(forecast, threshold)
+
+    print(f"Days until low fatigue state: {days}")
 
     print(forecast)
 
