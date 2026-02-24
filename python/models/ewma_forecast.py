@@ -2,6 +2,8 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 from typing import Optional
+import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
 
 def forecast_ewma(last_ewma: float, future_stress: np.ndarray, alpha: float) -> np.ndarray:
     ewma_forecast = []
@@ -64,33 +66,84 @@ def days_until_recovery(forecast_df: pd.DataFrame, threshold: float) -> Optional
     return forecast_df.loc[below, "day_ahead"].iloc[0]
 
 if __name__ == "__main__":
-    """
-    Simple demo run for deterministic fatigue forecasting.
-    This does NOT modify the pipeline.
-    """
-
+    # Load processed data
     processed_path = Path(__file__).resolve().parents[2] / "data" / "processed"
     df = pd.read_csv(processed_path / "training_lift_day_aggregates.csv")
 
-    bench = df[df["exercise"].str.contains("bench press", na=False)].copy()
+    df["date"] = pd.to_datetime(df["date"])
 
-    forecast = forecast_fatigue_scenario(
-        bench,
-        horizon=21,
-        mode="deload"
+    # Filter bench press data
+    bench = (
+        df[df["exercise"].str.contains("bench press", na=False)]
+        .sort_values("date")
+        .copy()
     )
 
-    threshold = bench["ewma_stress"].quantile(0.25)
+    if bench.empty:
+        raise ValueError("No bench press data found.")
 
-    days = days_until_recovery(forecast, threshold)
+    # Generate forecasts
+    horizon = 21
 
-    print(f"Days until low fatigue state: {days}")
+    maintain = forecast_fatigue_scenario(bench, horizon=horizon, mode="maintain")
+    reduce = forecast_fatigue_scenario(bench, horizon=horizon, mode="reduce")
+    deload = forecast_fatigue_scenario(bench, horizon=horizon, mode="deload")
 
-    print(forecast)
+    # Prepare time axis
+    last_date = bench["date"].iloc[-1]
+    future_dates = pd.date_range(
+        start=last_date + pd.Timedelta(days=1),
+        periods=horizon,
+        freq="D"
+    )
 
-    # maintain = forecast_fatigue_scenario(bench, horizon=21, mode="maintain")
-    # reduce = forecast_fatigue_scenario(bench, horizon=21, mode="reduce")
-    # deload = forecast_fatigue_scenario(bench, horizon=21, mode="deload")
+    # Plot
+    plt.figure(figsize=(12, 6))
 
-    # combined = pd.concat([maintain, reduce, deload])
-    # print(combined)
+    # Historical EWMA
+    plt.plot(
+        bench["date"],
+        bench["ewma_stress"],
+        label="Observed",
+        linewidth=1.8,
+        alpha=0.7,
+        color="steelblue"
+    )
+
+    # Vertical divider
+    plt.axvline(last_date, linestyle="--", color="black", alpha=0.6)
+
+    # Forecast region shading
+    xmin = float(mdates.date2num(last_date))
+    xmax = float(mdates.date2num(future_dates[-1]))
+
+    plt.axvspan(
+        xmin,
+        xmax,
+        color="gray",
+        alpha=0.08
+    )
+
+    # Forecast curves
+    plt.plot(future_dates, maintain["forecasted_ewma"],
+             label="Maintain", linestyle="--", linewidth=2, color="orange")
+
+    plt.plot(future_dates, reduce["forecasted_ewma"],
+             label="Reduce 30%", linestyle="--", linewidth=2, color="green")
+
+    plt.plot(future_dates, deload["forecasted_ewma"],
+             label="Deload", linestyle="-", linewidth=2.5, color="red")
+
+    plt.title("EWMA Fatigue Forecasting Scenarios – Bench Press")
+    plt.xlabel("Date")
+    plt.ylabel("EWMA Fatigue")
+    plt.ylim(bottom=0)
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
+
+    # --------------------------------------------------
+    # 6. Print combined forecast
+    # --------------------------------------------------
+    combined = pd.concat([maintain, reduce, deload], ignore_index=True)
+    print(combined)
