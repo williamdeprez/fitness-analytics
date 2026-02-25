@@ -1,148 +1,145 @@
 # Fitness & Recovery Analytics
-A Python-based training load and fatigue modeling project using real workout data.
 
-## Project Goals
-- Build a clean data pipeline for workout data.
-- Engineer interpretable fatigue and stress features.
-- Model long term load using EWMA
+A Python-based training load and fatigue modeling system built using real workout data from the Strong app.
+
+This project models **training stress, latent fatigue, recovery dynamics, and performance relationships** in a mathematically grounded, fully interpretable way.
+
+The goal is not black-box prediction — it is to build a clean state model of fatigue that aligns with real training structure.
+
+---
+
+## Core Concept
+
+Fatigue is modeled as a **daily evolving state variable**, not just a record of workout events.
+
+The system connects:
+
+> Stress → Fatigue → Training Phase → Performance
+
+Key components:
+
+- Daily training stress  
+- Exponentially Weighted Moving Average (EWMA) fatigue  
+- Fatigue phase classification  
+- Phase duration and transitions  
+- Deterministic fatigue forecasting  
+
+---
 
 ## Data Pipeline Overview
 
-1. Data Ingestion
+### 1. Ingestion
 
-Currently, ingesting data from exported csv files from Strong workout tracking app with Future plans to record data directly. 
+Raw Strong CSV exports are cleaned and normalized into:
 
-- cleaned,
-- normalized, 
-- standardized into a set-level dataset
+`training_sets_normalized.csv`
 
-Outputs:
-`training_sets.normalized.csv`
-
-
-Each row represents a single set with weight, reps, volume, and timestamp.
+Each row represents a single set with weight, reps, and timestamp.
 
 ---
 
 ### 2. Lift-Day Aggregation
 
-Set-level data is aggregated into **one row per exercise per day**.
+Set-level data is aggregated into one row per exercise per day:
 
-For each lift-day, the following metrics are computed:
+- Total training volume  
+- Maximum weight lifted  
+- Total sets and reps  
+- Mean RPE (when available)  
+- Training stress  
 
-- total training volume
-- maximum weight lifted
-- total sets and reps
-- mean RPE (when available)
-- RPE coverage (fraction of sets with RPE recorded)
+Stress is defined as:
 
-This aggregation provides the fundamental unit for fatigue modeling.
+- Volume-based when RPE is unavailable  
+- RPE-weighted when available  
 
----
-
-### 3. Stress Modeling
-
-Training stress is defined using two complementary formulations:
-
-- **Volume-based stress**  
-  \[
-  \text{Stress}_{\text{volume}} = \text{weight} \times \text{reps}
-  \]
-
-- **RPE-weighted stress** (when RPE is available)  
-  \[
-  \text{Stress}_{\text{RPE}} = \text{volume} \times \text{mean RPE}
-  \]
-
-When RPE is missing, the model falls back to volume-based stress.  
-This ensures continuity while still leveraging subjective intensity when available.
+This provides the fundamental unit for fatigue modeling.
 
 ---
 
-### 4. Rolling Load & EWMA Fatigue Modeling
+### 3. EWMA Fatigue Modeling
 
-To model accumulated fatigue over time, the pipeline computes:
+Fatigue is modeled using an Exponentially Weighted Moving Average:
 
-- Rolling stress sums (7-day, 14-day windows)
-- Exponentially Weighted Moving Average (EWMA) of stress
-
-The EWMA provides a smooth, memory-aware estimate of latent fatigue:
-
-\[
-\text{EWMA}_t = \alpha \cdot x_t + (1 - \alpha) \cdot \text{EWMA}_{t-1}
-\]
+$$
+\text{EWMA}_t = \alpha x_t + (1-\alpha)\text{EWMA}_{t-1}
+$$
 
 Where:
-- \( x_t \) is daily training stress
-- \( \alpha \) controls how quickly past stress decays
 
-EWMA captures long-term fatigue trends while suppressing short-term noise.
+- $x_t$ = daily stress  
+- $\alpha$ controls decay rate  
 
----
+This creates a smooth, memory-aware fatigue signal that:
 
-### 5. Time Since Last Session
-
-For each exercise, the number of days since the previous session is computed.
-
-This feature captures training frequency effects and distinguishes between acute fatigue and detraining.
+- Rises during accumulation  
+- Decays during rest  
+- Captures structural training changes  
 
 ---
 
-### 6. Fatigue Phase Classification
+### 4. Fatigue Phase Classification
 
-Fatigue phases are inferred from the **smoothed derivative** of EWMA stress:
+Using the smoothed derivative of EWMA:
 
-- **Accumulating**: fatigue increasing
-- **Recovering**: fatigue decreasing
-- **Stable**: fatigue relatively constant
+- **Accumulating** → fatigue increasing  
+- **Stable** → plateau  
+- **Recovering** → fatigue decreasing  
 
-This converts a continuous fatigue signal into interpretable training states aligned with real-world programming concepts.
+Consecutive days are grouped into phase blocks to analyze training structure.
 
 ---
 
-### 7. Fatigue Phase Aggregation
+## Historical Fatigue Phases
 
-Consecutive fatigue phases are grouped into contiguous blocks.
+Below is the EWMA fatigue signal for bench press with phase classification.
 
-For each phase block, the model computes:
+![Bench Phase Historical](assets/figures/bench_phase_historical.png)
 
-- start and end dates
-- calendar duration
-- number of training sessions
-- mean fatigue and stress levels
+The phase segmentation aligns with ramp periods, recovery blocks, and structural programming shifts.
 
-This enables detection of prolonged accumulation, recovery periods, and phase transitions.
+---
+
+## Deterministic Fatigue Forecasting
+
+Using the current fatigue state, the system projects forward under controlled stress scenarios:
+
+- Maintain current load  
+- Reduce load by 30%  
+- Full deload  
+
+![Bench Fatigue Forecasting](assets/figures/bench_fatigue_forecasting_figure.png)
+
+This enables:
+
+- Estimating days to recovery  
+- Comparing reduction strategies  
+- Planning deload timing  
+- Scenario-based fatigue management  
+
+The forecast is deterministic and interpretable — no neural networks or black-box models.
 
 ---
 
 ## Performance Modeling
 
-To evaluate whether the fatigue model captures meaningful signal, a **linear regression** is trained to explain daily performance.
+A ridge regression evaluates how fatigue state relates to performance.
 
-### Target Variable
-- Maximum weight lifted per lift-day
+**Target:**  
+- Maximum weight lifted per lift-day  
 
-### Features
-- EWMA fatigue level
-- Fatigue phase (categorical)
-- Days since last session
+**Features:**  
+- EWMA fatigue  
+- Fatigue phase  
+- Days since last session  
 
-Fatigue phase is one-hot encoded with a configurable baseline, allowing performance to be interpreted **relative to different training states**.
-
-### Key Findings
-
-- Stable fatigue phases are associated with substantially higher performance compared to accumulation phases
-- Recovery phases show intermediate performance improvements
-- EWMA fatigue magnitude explains within-phase performance variation
-- Results are robust to baseline choice and align with known injury and ramp periods
-
-This confirms that the fatigue signal captures meaningful latent structure rather than noise.
+Results show consistent performance differences across fatigue phases, validating the fatigue signal as a structured latent variable.
 
 ---
 
 ## Outputs
 
-Processed datasets are written to `data/processed/`, including:
+Processed datasets are written to `data/processed/`:
 
 - `training_sets_normalized.csv`
 - `training_lift_day_aggregates.csv`
@@ -151,11 +148,18 @@ Processed datasets are written to `data/processed/`, including:
 
 ---
 
-## Future Work
+## Design Philosophy
 
-- Add EWMA slope magnitude as a feature
-- Compare fatigue dynamics across different lifts
-- Integrate nutrition and sleep data
-- Build an interactive R Shiny dashboard for visualization
-- Extend modeling to global, whole-body fatigue
-- Add a complete PostgreSQL table lookup for individual's data.
+- Interpretability > complexity  
+- Deterministic modeling before predictive modeling  
+- Daily state evolution over sparse event modeling  
+- Real training history as ground truth  
+
+---
+
+## Roadmap
+
+- Lagged fatigue–performance modeling  
+- Scenario optimization (minimum reduction to recover in N days)  
+- Cross-lift fatigue interaction  
+- Interactive visualization layer  

@@ -97,13 +97,19 @@ if __name__ == "__main__":
         freq="D"
     )
 
+    history_window_days = 90
+
+    cutoff_date = last_date - pd.Timedelta(days=history_window_days)
+
+    bench_recent = bench[bench["date"] >= cutoff_date].copy()
+
     # Plot
     plt.figure(figsize=(12, 6))
 
     # Historical EWMA
     plt.plot(
-        bench["date"],
-        bench["ewma_stress"],
+        bench_recent["date"],
+        bench_recent["ewma_stress"],
         label="Observed",
         linewidth=1.8,
         alpha=0.7,
