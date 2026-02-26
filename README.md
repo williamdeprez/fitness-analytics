@@ -62,7 +62,7 @@ This provides the fundamental unit for fatigue modeling.
 Fatigue is modeled using an Exponentially Weighted Moving Average:
 
 $$
-\text{EWMA}_t = \alpha x_t + (1-\alpha)\text{EWMA}_{t-1}
+\text{EWMA}_t = \alpha x_t + (1-\alpha)\,\text{EWMA}_{t-1}
 $$
 
 Where:
