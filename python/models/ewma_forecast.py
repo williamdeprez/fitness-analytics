@@ -178,3 +178,11 @@ if __name__ == "__main__":
 
     combined = pd.concat([maintain, reduce, deload], ignore_index=True)
     print(combined)
+
+    maintain_days = days_until_recovery(maintain, threshold)
+    reduce_days = days_until_recovery(reduce, threshold)
+    deload_days = days_until_recovery(deload, threshold)
+
+    print(f"Maintain recovery days: {maintain_days}")
+    print(f"Reduce recovery days: {reduce_days}")
+    print(f"Deload recovery days: {deload_days}")
