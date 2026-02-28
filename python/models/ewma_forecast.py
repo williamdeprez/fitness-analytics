@@ -65,6 +65,25 @@ def days_until_recovery(forecast_df: pd.DataFrame, threshold: float) -> Optional
 
     return forecast_df.loc[below, "day_ahead"].iloc[0]
 
+def summarize_scenarios(scenarios: dict, threshold: float) -> pd.DataFrame:
+    rows = []
+
+    for name, forecast_df in scenarios.items():
+        days = days_until_recovery(forecast_df, threshold)
+
+        rows.append({
+            "scenario": name,
+            "days_until_recovery": days,
+            "final_fatigue": forecast_df["forecasted_ewma"].iloc[-1],
+            "percent_drop": (
+                (forecast_df["forecasted_ewma"].iloc[0] -
+                 forecast_df["forecasted_ewma"].iloc[-1])
+                / forecast_df["forecasted_ewma"].iloc[0]
+            ) * 100
+        })
+
+    return pd.DataFrame(rows)
+
 if __name__ == "__main__":
     processed_path = Path(__file__).resolve().parents[2] / "data" / "processed"
     df = pd.read_csv(processed_path / "training_lift_day_aggregates.csv")
@@ -96,11 +115,23 @@ if __name__ == "__main__":
 
     threshold = bench["ewma_stress"].quantile(0.25)
 
-    days = days_until_recovery(deload, threshold)
+    scenarios = {
+        "maintain": maintain,
+        "reduce_30": reduce,
+        "deload": deload
+    }
+
+    summary = summarize_scenarios(scenarios, threshold)
+    print(summary)
+
+    deload_days = summary.loc[
+        summary["scenario"] == "deload",
+        "days_until_recovery"
+    ].iloc[0]
 
     recovery_date = None
-    if days is not None:
-        recovery_date = last_date + pd.Timedelta(days=days)
+    if pd.notna(deload_days):
+        recovery_date = last_date + pd.Timedelta(days=int(deload_days))
 
     history_window_days = 90
     cutoff_date = last_date - pd.Timedelta(days=history_window_days)
@@ -121,7 +152,6 @@ if __name__ == "__main__":
 
     xmin = float(mdates.date2num(last_date))
     xmax = float(mdates.date2num(future_dates[-1]))
-
     plt.axvspan(xmin, xmax, color="gray", alpha=0.08)
 
     plt.plot(
@@ -158,7 +188,7 @@ if __name__ == "__main__":
             linestyle=":",
             linewidth=2,
             alpha=0.8,
-            label="Recovery Threshold"
+            label="Deload Recovery Date"
         )
 
         plt.axhline(
@@ -175,6 +205,3 @@ if __name__ == "__main__":
     plt.legend()
     plt.tight_layout()
     plt.show()
-
-    combined = pd.concat([maintain, reduce, deload], ignore_index=True)
-    print(combined)
