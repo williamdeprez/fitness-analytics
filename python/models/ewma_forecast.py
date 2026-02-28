@@ -204,13 +204,7 @@ if __name__ == "__main__":
     plt.ylim(bottom=0)
     plt.legend()
     plt.tight_layout()
-<<<<<<< HEAD
     plt.show()
-=======
-    plt.show()
-
-    combined = pd.concat([maintain, reduce, deload], ignore_index=True)
-    print(combined)
 
     maintain_days = days_until_recovery(maintain, threshold)
     reduce_days = days_until_recovery(reduce, threshold)
@@ -219,4 +213,3 @@ if __name__ == "__main__":
     print(f"Maintain recovery days: {maintain_days}")
     print(f"Reduce recovery days: {reduce_days}")
     print(f"Deload recovery days: {deload_days}")
->>>>>>> 22a09edc0890c83c9aa77a457bc832b582f9dd62
