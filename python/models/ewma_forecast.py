@@ -84,6 +84,42 @@ def summarize_scenarios(scenarios: dict, threshold: float) -> pd.DataFrame:
 
     return pd.DataFrame(rows)
 
+def required_scale_for_recovery(
+    df: pd.DataFrame,
+    threshold: float,
+    target_days: int,
+    horizon: int = 21,
+    tol: float = 0.01,
+    max_iter: int = 25
+) -> Optional[float]:
+
+    low = 0.0
+    high = 1.0
+
+    for _ in range(max_iter):
+        mid = (low + high) / 2
+
+        forecast = forecast_fatigue_scenario(
+            df,
+            horizon=horizon,
+            mode="reduce",
+            scale=mid
+        )
+
+        days = days_until_recovery(forecast, threshold)
+
+        if days is None or days > target_days:
+            # Not enough reduction → need lower scale
+            high = mid
+        else:
+            # Recovered fast enough → try less reduction
+            low = mid
+
+        if abs(high - low) < tol:
+            break
+
+    return low
+
 if __name__ == "__main__":
     processed_path = Path(__file__).resolve().parents[2] / "data" / "processed"
     df = pd.read_csv(processed_path / "training_lift_day_aggregates.csv")
@@ -213,3 +249,15 @@ if __name__ == "__main__":
     print(f"Maintain recovery days: {maintain_days}")
     print(f"Reduce recovery days: {reduce_days}")
     print(f"Deload recovery days: {deload_days}")
+
+    target_days = 7
+
+    required_scale = required_scale_for_recovery(
+        bench,
+        threshold=threshold,
+        target_days=target_days,
+        horizon=horizon
+    )
+
+    print(f"\nTo recover within {target_days} days:")
+    print(f"Required stress scale ≈ {required_scale:.2f}")
