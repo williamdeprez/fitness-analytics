@@ -2,6 +2,7 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression, Ridge
 from sklearn.metrics import mean_squared_error, r2_score
+from typing import Tuple, List
 
 def encode_fatigue_phase(X: pd.DataFrame, baseline: str) -> pd.DataFrame:
     phases = ["accumulating", "recovering", "stable"]
@@ -95,7 +96,7 @@ def print_model_information(model, X_train: pd.DataFrame, X_test: pd.DataFrame, 
             index=False
         )
 
-def train_regression_model(data: pd.DataFrame, target: str, features: list, phase_baseline: str = "accumulating") -> LinearRegression:
+def train_regression_model(data: pd.DataFrame, target: str, features: list, phase_baseline: str = "accumulating") -> Tuple[LinearRegression, List[str]]:
     # Select features + target
     df = data[features + [target]].copy()
 
@@ -126,9 +127,9 @@ def train_regression_model(data: pd.DataFrame, target: str, features: list, phas
         model_name="Linear Regression"
     )
 
-    return model
+    return model, X.columns.tolist()
 
-def train_ridge_regression(data: pd.DataFrame, target: str, features: list, alpha: float = 1.0, phase_baseline: str = "accumulating") -> Ridge:
+def train_ridge_regression(data: pd.DataFrame, target: str, features: list, alpha: float = 1.0, phase_baseline: str = "accumulating") -> Tuple[Ridge, List[str]]:
     # Select features + target
     df = data[features + [target]].copy()
 
@@ -156,4 +157,4 @@ def train_ridge_regression(data: pd.DataFrame, target: str, features: list, alph
         model_name="Ridge Regression"
     )
 
-    return model
+    return model, X.columns.tolist()

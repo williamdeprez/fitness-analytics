@@ -88,6 +88,9 @@ def main():
         phase_baseline="accumulating"
     )
 
+    print(ridge_model[0].coef_)
+
+
 
 if __name__ == "__main__":
     main()
