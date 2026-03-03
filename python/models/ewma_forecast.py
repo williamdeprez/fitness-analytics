@@ -120,45 +120,21 @@ def required_scale_for_recovery(
 
     return low
 
-if __name__ == "__main__":
-    processed_path = Path(__file__).resolve().parents[2] / "data" / "processed"
-    df = pd.read_csv(processed_path / "training_lift_day_aggregates.csv")
-
-    df["date"] = pd.to_datetime(df["date"])
-
-    bench = (
-        df[df["exercise"].str.contains("bench press", na=False)]
-        .sort_values("date")
-        .copy()
-    )
-
-    if bench.empty:
-        raise ValueError("No bench press data found.")
-
-    horizon = 21
-
-    maintain = forecast_fatigue_scenario(bench, horizon=horizon, mode="maintain")
-    reduce = forecast_fatigue_scenario(bench, horizon=horizon, mode="reduce")
-    deload = forecast_fatigue_scenario(bench, horizon=horizon, mode="deload")
-
-    last_date = bench["date"].iloc[-1]
-
+def plot_forecast(
+    bench: pd.DataFrame,
+    scenarios: dict,
+    threshold: float,
+    last_date: pd.Timestamp,
+    horizon: int,
+    history_window_days: int = 90
+):
     future_dates = pd.date_range(
         start=last_date + pd.Timedelta(days=1),
         periods=horizon,
         freq="D"
     )
 
-    threshold = bench["ewma_stress"].quantile(0.25)
-
-    scenarios = {
-        "maintain": maintain,
-        "reduce_30": reduce,
-        "deload": deload
-    }
-
     summary = summarize_scenarios(scenarios, threshold)
-    print(summary)
 
     deload_days = summary.loc[
         summary["scenario"] == "deload",
@@ -169,7 +145,6 @@ if __name__ == "__main__":
     if pd.notna(deload_days):
         recovery_date = last_date + pd.Timedelta(days=int(deload_days))
 
-    history_window_days = 90
     cutoff_date = last_date - pd.Timedelta(days=history_window_days)
     bench_recent = bench[bench["date"] >= cutoff_date].copy()
 
@@ -184,42 +159,37 @@ if __name__ == "__main__":
         color="steelblue"
     )
 
-    plt.axvline(last_date, linestyle="--", color="black", alpha=0.6)
+    plt.axvline(float(mdates.date2num(last_date)), linestyle="--", color="black", alpha=0.6)
 
     xmin = float(mdates.date2num(last_date))
     xmax = float(mdates.date2num(future_dates[-1]))
     plt.axvspan(xmin, xmax, color="gray", alpha=0.08)
 
-    plt.plot(
-        future_dates,
-        maintain["forecasted_ewma"],
-        label="Maintain",
-        linestyle="--",
-        linewidth=2,
-        color="orange"
-    )
+    for name, forecast in scenarios.items():
+        color_map = {
+            "maintain": "orange",
+            "reduce_30": "green",
+            "deload": "red"
+        }
 
-    plt.plot(
-        future_dates,
-        reduce["forecasted_ewma"],
-        label="Reduce 30%",
-        linestyle="--",
-        linewidth=2,
-        color="green"
-    )
+        style_map = {
+            "maintain": "--",
+            "reduce_30": "--",
+            "deload": "-"
+        }
 
-    plt.plot(
-        future_dates,
-        deload["forecasted_ewma"],
-        label="Deload",
-        linestyle="-",
-        linewidth=2.5,
-        color="red"
-    )
+        plt.plot(
+            future_dates,
+            forecast["forecasted_ewma"],
+            label=name,
+            linestyle=style_map.get(name, "--"),
+            linewidth=2.5 if name == "deload" else 2,
+            color=color_map.get(name, "black")
+        )
 
     if recovery_date is not None:
         plt.axvline(
-            recovery_date,
+            float(mdates.date2num(recovery_date)),
             color="red",
             linestyle=":",
             linewidth=2,
@@ -242,13 +212,46 @@ if __name__ == "__main__":
     plt.tight_layout()
     plt.show()
 
-    maintain_days = days_until_recovery(maintain, threshold)
-    reduce_days = days_until_recovery(reduce, threshold)
-    deload_days = days_until_recovery(deload, threshold)
+if __name__ == "__main__":
+    processed_path = Path(__file__).resolve().parents[2] / "data" / "processed"
+    df = pd.read_csv(processed_path / "training_lift_day_aggregates.csv")
 
-    print(f"Maintain recovery days: {maintain_days}")
-    print(f"Reduce recovery days: {reduce_days}")
-    print(f"Deload recovery days: {deload_days}")
+    df["date"] = pd.to_datetime(df["date"])
+
+    bench = (
+        df[df["exercise"].str.contains("bench press", na=False)]
+        .sort_values("date")
+        .copy()
+    )
+
+    if bench.empty:
+        raise ValueError("No bench press data found.")
+
+    horizon = 21
+
+    maintain = forecast_fatigue_scenario(bench, horizon=horizon, mode="maintain")
+    reduce = forecast_fatigue_scenario(bench, horizon=horizon, mode="reduce")
+    deload = forecast_fatigue_scenario(bench, horizon=horizon, mode="deload")
+
+    last_date = bench["date"].iloc[-1]
+    threshold = bench["ewma_stress"].quantile(0.25)
+
+    scenarios = {
+        "maintain": maintain,
+        "reduce_30": reduce,
+        "deload": deload
+    }
+
+    summary = summarize_scenarios(scenarios, threshold)
+    print(summary)
+
+    plot_forecast(
+        bench=bench,
+        scenarios=scenarios,
+        threshold=threshold,
+        last_date=last_date,
+        horizon=horizon
+    )
 
     target_days = 7
 
