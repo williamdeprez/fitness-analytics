@@ -1,5 +1,6 @@
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 
 def performance_response_curve(
     model,
@@ -38,20 +39,63 @@ def performance_response_curve(
 
     predictions = model.predict(X)
 
-    return pd.DataFrame({
+    response_df = pd.DataFrame({
         fatigue_feature: fatigue_range,
         "predicted_performance": predictions
     })
 
+    response_df["is_current"] = np.isclose(
+        response_df[fatigue_feature],
+        base_value,
+        rtol=1e-4
+    )
+
+    return response_df
+
+def plot_predictions(response_df: pd.DataFrame, fatigue_feature: str = "ewma_stress") -> None:
+    plt.figure(figsize=(10, 6))
+
+    plt.plot(
+        response_df[fatigue_feature],
+        response_df["predicted_performance"],
+        linewidth=2
+    )
+
+    current_row = response_df[response_df["is_current"]]
+
+    if not current_row.empty:
+        current_fatigue = current_row[fatigue_feature].iloc[0]
+        current_perf = current_row["predicted_performance"].iloc[0]
+
+        plt.axvline(
+            current_fatigue,
+            linestyle="--",
+            linewidth=1.5
+        )
+
+        plt.scatter(
+            current_fatigue,
+            current_perf,
+            s=60,
+            zorder=3
+        )
+
+    plt.xlabel("Fatigue Level")
+    plt.ylabel("Predicted Performance")
+    plt.title("Predicted Performance vs Fatigue")
+    plt.tight_layout()
+    plt.show()
+    
+
 if __name__ == "__main__":
     from pathlib import Path
     import pandas as pd
-    from python.models.regression import (
+    from models.regression import (
         train_ridge_regression,
         encode_fatigue_phase,
     )
 
-    processed_path = Path(__file__).resolve().parents[2] / "data" / "processed"
+    processed_path = Path(__file__).resolve().parents[1] / "data" / "processed"
     df = pd.read_csv(processed_path / "model_bench_regression.csv")
 
     target = "max_weight"
@@ -92,3 +136,5 @@ if __name__ == "__main__":
     print("\nPerformance Response Curve Preview:")
     print(response_df.head())
     print(response_df.tail())
+
+    plot_predictions(response_df)
