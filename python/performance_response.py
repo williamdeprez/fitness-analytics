@@ -85,6 +85,18 @@ def plot_predictions(response_df: pd.DataFrame, fatigue_feature: str = "ewma_str
     plt.title("Predicted Performance vs Fatigue")
     plt.tight_layout()
     plt.show()
+
+def simulate_adaptation_gain(ewma_coef: float, current_ewma: float, pct_increase: float) -> dict:
+    target_ewma = current_ewma * (1 + pct_increase)
+    delta_ewma = target_ewma - current_ewma
+    predicted_gain = ewma_coef * delta_ewma
+
+    return {
+        "pct_increase": pct_increase,
+        "target_ewma": target_ewma,
+        "delta_ewma": delta_ewma,
+        "predicted_strength_gain": predicted_gain
+    }
     
 
 if __name__ == "__main__":
@@ -106,15 +118,30 @@ if __name__ == "__main__":
         "fatigue_phase"
     ]
 
-    alpha = 1000  # use your tuned value here if different
+    from run_pipeline import RIDGE_ALPHA_V1
 
     model, feature_columns = train_ridge_regression(
         data=df,
         target=target,
         features=features,
-        alpha=alpha,
+        alpha=RIDGE_ALPHA_V1,
         phase_baseline="accumulating"
     )
+
+    coef_series = pd.Series(
+        model.coef_,
+        index=feature_columns
+    )
+
+    print("\nCoefficient Table:")
+    print(coef_series.sort_values())
+
+    mean_ewma = df["ewma_stress"].mean()
+    mean_perf = df["max_weight"].mean()
+
+    elasticity = coef_series["ewma_stress"] * mean_ewma / mean_perf
+
+    print("Elasticity:", elasticity)
 
     df_model = df[features + [target]].dropna().copy()
 
@@ -136,5 +163,26 @@ if __name__ == "__main__":
     print("\nPerformance Response Curve Preview:")
     print(response_df.head())
     print(response_df.tail())
+
+    ewma_coef = coef_series["ewma_stress"]
+    current_ewma = base_row["ewma_stress"]
+
+        
+    stress_scenarios = [i / 100 for i in range(-10, 21, 5)]
+
+    results = []
+
+    for pct in stress_scenarios:
+        result = simulate_adaptation_gain(
+            ewma_coef=ewma_coef,
+            current_ewma=current_ewma,
+            pct_increase=pct
+        )
+        results.append(result)
+
+    results_df = pd.DataFrame(results)
+
+    print("\nAdaptation Simulation (Chronic Load Increase):")
+    print(results_df)
 
     plot_predictions(response_df)
