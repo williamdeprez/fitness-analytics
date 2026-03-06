@@ -163,3 +163,4 @@ Processed datasets are written to `data/processed/`:
 - Scenario optimization (minimum reduction to recover in N days)  
 - Cross-lift fatigue interaction  
 - Interactive visualization layer  
+- Modify data model to better reflect real world influences 
